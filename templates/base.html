@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}{{ app_title }}{% endblock %}</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="/static/css/app.css">
+</head>
+<body>
+  {% if demo_mode %}
+  <div class="demo-banner">{{ demo_banner }}</div>
+  {% endif %}
+
+  <nav class="navbar">
+    <div class="nav-inner">
+      <a class="nav-brand" href="/">&#128737; {{ app_title }}</a>
+      <div class="nav-subtitle">{{ app_subtitle }}</div>
+      <div class="nav-links">
+        <a href="/">Dashboard</a>
+        <a href="/systems/new">New System</a>
+      </div>
+    </div>
+  </nav>
+
+  <main class="container">
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="site-footer">
+    <p>{{ app_title }} &mdash; NIST SP 800-53 Rev 5 / RMF Compliance Assistant</p>
+    <p style="font-size:0.75rem;color:#8a9bb0">DEMONSTRATION ONLY &mdash; not for operational use &mdash; always verify against official NIST guidance</p>
+  </footer>
+</body>
+</html>

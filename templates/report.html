@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+{% block title %}ATO Report — {{ system.name }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <a href="/systems/{{ system.id }}" class="back-link">&larr; {{ system.name }}</a>
+  <h1>ATO Readiness Report</h1>
+  <p class="subtitle">{{ system.name }} &mdash; {{ system.impact_level }} Baseline</p>
+</div>
+
+<!-- Executive summary -->
+<div class="risk-banner ato-banner-{{ system.ato_status | lower | replace(' ', '-') }}">
+  <div class="risk-score-big">{{ system.completion_pct }}<span>%</span></div>
+  <div>
+    <strong>{{ system.ato_status }}</strong><br>
+    {{ system.implemented_count }} controls implemented &bull;
+    {{ system.planned_count }} planned &bull;
+    {{ system.not_started_count }} not started &bull;
+    {{ (system.inherited_count + system.not_applicable_count) }} inherited/N/A
+  </div>
+</div>
+
+<!-- FIPS 199 summary -->
+<div class="card">
+  <h2>FIPS 199 Categorization</h2>
+  <div class="cia-grid">
+    <div class="cia-box">
+      <div class="cia-label">Confidentiality</div>
+      <div class="cia-value impact-{{ system.confidentiality | lower }}">{{ system.confidentiality }}</div>
+    </div>
+    <div class="cia-box">
+      <div class="cia-label">Integrity</div>
+      <div class="cia-value impact-{{ system.integrity | lower }}">{{ system.integrity }}</div>
+    </div>
+    <div class="cia-box">
+      <div class="cia-label">Availability</div>
+      <div class="cia-value impact-{{ system.availability | lower }}">{{ system.availability }}</div>
+    </div>
+    <div class="cia-box cia-overall">
+      <div class="cia-label">Overall</div>
+      <div class="cia-value impact-{{ system.impact_level | lower }}">{{ system.impact_level }}</div>
+    </div>
+  </div>
+  {% if system.categorization_rationale %}
+  <div class="rationale-box" style="margin-top:1rem">{{ system.categorization_rationale }}</div>
+  {% endif %}
+</div>
+
+<!-- Control status breakdown -->
+<div class="card">
+  <h2>Control Status Breakdown</h2>
+  <div class="status-breakdown">
+    <div class="breakdown-item breakdown-implemented">
+      <div class="breakdown-count">{{ implemented | length }}</div>
+      <div class="breakdown-label">Implemented</div>
+    </div>
+    <div class="breakdown-item breakdown-planned">
+      <div class="breakdown-count">{{ gaps | selectattr("status", "equalto", "planned") | list | length }}</div>
+      <div class="breakdown-label">Planned</div>
+    </div>
+    <div class="breakdown-item breakdown-not-started">
+      <div class="breakdown-count">{{ gaps | selectattr("status", "equalto", "not_started") | list | length }}</div>
+      <div class="breakdown-label">Not Started</div>
+    </div>
+    <div class="breakdown-item breakdown-inherited">
+      <div class="breakdown-count">{{ inherited | length }}</div>
+      <div class="breakdown-label">Inherited</div>
+    </div>
+    <div class="breakdown-item breakdown-na">
+      <div class="breakdown-count">{{ na | length }}</div>
+      <div class="breakdown-label">N/A</div>
+    </div>
+  </div>
+</div>
+
+<!-- POA&M -->
+{% if poam %}
+<div class="card card-danger">
+  <h2>&#9888;&#65039; Plan of Action &amp; Milestones (POA&amp;M)</h2>
+  <p>{{ poam | length }} control(s) not yet started — require remediation before ATO can be granted.</p>
+  <div class="table-wrap">
+    <table class="supplier-table">
+      <thead>
+        <tr>
+          <th>Control ID</th>
+          <th>Title</th>
+          <th>Family</th>
+          <th>Action Required</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for a in poam %}
+        {% set ctrl = control_lookup.get(a.control_id) %}
+        <tr>
+          <td><a href="/systems/{{ system.id }}/controls/{{ a.control_id }}" class="control-link">{{ a.control_id }}</a></td>
+          <td>{{ ctrl.title if ctrl else a.control_id }}</td>
+          <td>{{ control_families.get(a.control_family, a.control_family) }}</td>
+          <td>Implement control and document in SSP</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% else %}
+<div class="card" style="border-left:4px solid var(--green)">
+  <h2>&#10003; No POA&amp;M Items</h2>
+  <p>All controls are implemented, planned, inherited, or marked not applicable.</p>
+</div>
+{% endif %}
+
+<!-- Implemented controls (collapsed summary) -->
+{% if implemented %}
+<div class="card">
+  <h2>&#10003; Implemented Controls ({{ implemented | length }})</h2>
+  <div class="control-pills">
+    {% for a in implemented | sort(attribute='control_id') %}
+    <a href="/systems/{{ system.id }}/controls/{{ a.control_id }}" class="control-pill pill-implemented">
+      {{ a.control_id }}
+    </a>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<div style="margin-top:1.5rem">
+  <a href="/systems/{{ system.id }}" class="btn btn-primary">&#8592; Back to Controls</a>
+</div>
+{% endblock %}

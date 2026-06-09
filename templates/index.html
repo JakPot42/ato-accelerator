@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — {{ app_title }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>RMF Systems Dashboard</h1>
+  <p class="subtitle">Track ATO readiness across all systems under assessment.</p>
+</div>
+
+<div class="toolbar">
+  <a href="/systems/new" class="btn btn-primary">&#43; New System</a>
+  <form method="post" action="/seed" style="display:inline">
+    <button type="submit" class="btn btn-secondary">Load Demo System</button>
+  </form>
+</div>
+
+{% if systems %}
+<div class="systems-grid">
+  {% for s in systems %}
+  <a href="/systems/{{ s.id }}" class="system-card">
+    <div class="system-card-top">
+      <div>
+        <div class="system-name">{{ s.name }}</div>
+        {% if s.system_owner %}
+        <div class="system-owner">{{ s.system_owner }}</div>
+        {% endif %}
+      </div>
+      {% if s.impact_level %}
+      <span class="badge badge-impact-{{ s.impact_level | lower }}">{{ s.impact_level }}</span>
+      {% else %}
+      <span class="badge badge-pending">Uncategorized</span>
+      {% endif %}
+    </div>
+
+    {% if s.impact_level %}
+    <div class="progress-row">
+      <div class="progress-bar-wrap">
+        <div class="progress-bar" style="width:{{ s.completion_pct }}%"></div>
+      </div>
+      <span class="progress-label">{{ s.completion_pct }}% complete</span>
+    </div>
+
+    <div class="system-stats">
+      <span class="stat stat-green">&#10003; {{ s.implemented_count }} implemented</span>
+      <span class="stat stat-blue">&#8635; {{ s.planned_count }} planned</span>
+      <span class="stat stat-red">&#9675; {{ s.not_started_count }} not started</span>
+      <span class="stat stat-grey">{{ s.inherited_count + s.not_applicable_count }} N/A or inherited</span>
+    </div>
+
+    <div class="ato-status ato-{{ s.ato_status | lower | replace(' ', '-') }}">
+      {{ s.ato_status }}
+    </div>
+    {% else %}
+    <div class="system-uncategorized">Click to begin FIPS 199 categorization &#8594;</div>
+    {% endif %}
+  </a>
+  {% endfor %}
+</div>
+
+{% else %}
+<div class="empty-state">
+  <p style="font-size:1.1rem;font-weight:600">No systems yet.</p>
+  <p>Create a new system or load the demo to get started.</p>
+  <div style="margin-top:1.5rem;display:flex;gap:1rem;justify-content:center">
+    <a href="/systems/new" class="btn btn-primary">&#43; New System</a>
+    <form method="post" action="/seed">
+      <button type="submit" class="btn btn-secondary">Load Demo System</button>
+    </form>
+  </div>
+</div>
+{% endif %}
+
+<div class="info-cards">
+  <div class="info-card">
+    <h3>&#128196; What is an ATO?</h3>
+    <p>An Authority to Operate (ATO) is a formal declaration by a senior official that authorizes a federal information system to operate, accepting residual risk. Required before any DoD/federal system goes live.</p>
+  </div>
+  <div class="info-card">
+    <h3>&#128203; What is RMF?</h3>
+    <p>The Risk Management Framework (NIST SP 800-37) is a 7-step process: Prepare → Categorize → Select → Implement → Assess → Authorize → Monitor. This tool covers steps 2–5.</p>
+  </div>
+  <div class="info-card">
+    <h3>&#128221; What is NIST 800-53?</h3>
+    <p>The security and privacy control catalog for federal information systems. Rev 5 contains 1,000+ controls across 20 families. Your baseline (Low/Moderate/High) determines which controls apply.</p>
+  </div>
+</div>
+{% endblock %}

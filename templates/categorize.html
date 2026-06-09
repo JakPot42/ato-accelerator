@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}Categorize {{ system.name }} — {{ app_title }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <a href="/" class="back-link">&larr; Dashboard</a>
+  <h1>FIPS 199 Categorization</h1>
+  <p class="subtitle">{{ system.name }}</p>
+</div>
+
+{% if error %}
+<div class="alert alert-error">{{ error }}</div>
+{% endif %}
+
+{% if system.impact_level %}
+<div class="card categorization-result">
+  <h2>&#10003; Categorization Complete</h2>
+  <div class="cia-grid">
+    <div class="cia-box">
+      <div class="cia-label">Confidentiality</div>
+      <div class="cia-value impact-{{ system.confidentiality | lower }}">{{ system.confidentiality }}</div>
+    </div>
+    <div class="cia-box">
+      <div class="cia-label">Integrity</div>
+      <div class="cia-value impact-{{ system.integrity | lower }}">{{ system.integrity }}</div>
+    </div>
+    <div class="cia-box">
+      <div class="cia-label">Availability</div>
+      <div class="cia-value impact-{{ system.availability | lower }}">{{ system.availability }}</div>
+    </div>
+    <div class="cia-box cia-overall">
+      <div class="cia-label">Overall Impact Level</div>
+      <div class="cia-value impact-{{ system.impact_level | lower }}">{{ system.impact_level }}</div>
+    </div>
+  </div>
+
+  {% if system.categorization_rationale %}
+  <div class="rationale-box">
+    <strong>Rationale:</strong> {{ system.categorization_rationale }}
+  </div>
+  {% endif %}
+
+  <div style="margin-top:1.25rem;display:flex;gap:0.75rem">
+    <a href="/systems/{{ system.id }}" class="btn btn-primary">View Control Baseline &#8594;</a>
+    <form method="post" action="/systems/{{ system.id }}/categorize" style="display:inline">
+      <button type="submit" class="btn btn-outline" onclick="this.textContent='Re-analyzing…'; this.disabled=true; this.form.submit();">
+        Re-run Categorization
+      </button>
+    </form>
+  </div>
+</div>
+
+{% else %}
+<div class="card" style="max-width:700px">
+  <p>Claude will analyze your system description and assign an impact level for each security objective (Confidentiality, Integrity, Availability) per FIPS 199. The highest value becomes your overall impact level and determines your NIST 800-53 control baseline.</p>
+
+  <div class="info-box" style="margin:1rem 0">
+    <strong>System:</strong> {{ system.name }}<br>
+    <strong>Description:</strong> {{ system.description or "Not provided" }}<br>
+    <strong>Data types:</strong> {{ system.data_types or "Not provided" }}
+  </div>
+
+  <form method="post" action="/systems/{{ system.id }}/categorize">
+    <button type="submit" class="btn btn-primary" onclick="this.textContent='Analyzing… (10–20 sec)'; this.disabled=true; this.form.submit();">
+      &#129302; Run FIPS 199 Categorization
+    </button>
+  </form>
+</div>
+{% endif %}
+{% endblock %}

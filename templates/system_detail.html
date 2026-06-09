@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% block title %}{{ system.name }} — {{ app_title }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <a href="/" class="back-link">&larr; Dashboard</a>
+  <h1>{{ system.name }}</h1>
+  {% if system.system_owner %}<p class="subtitle">{{ system.system_owner }}</p>{% endif %}
+</div>
+
+<!-- System header bar -->
+<div class="system-header-bar">
+  <div class="header-stat">
+    <span class="header-stat-label">Impact Level</span>
+    <span class="badge badge-impact-{{ (system.impact_level or 'unknown') | lower }}">{{ system.impact_level or "Uncategorized" }}</span>
+  </div>
+  <div class="header-stat">
+    <span class="header-stat-label">ATO Status</span>
+    <span class="ato-status ato-{{ system.ato_status | lower | replace(' ', '-') }}">{{ system.ato_status }}</span>
+  </div>
+  <div class="header-stat">
+    <span class="header-stat-label">Completion</span>
+    <strong>{{ system.completion_pct }}%</strong>
+  </div>
+  <div class="header-stat">
+    <span class="header-stat-label">Total Controls</span>
+    <strong>{{ system.total_controls }}</strong>
+  </div>
+  <div class="header-actions">
+    <a href="/systems/{{ system.id }}/report" class="btn btn-primary">&#128196; ATO Report</a>
+    <a href="/systems/{{ system.id }}/categorize" class="btn btn-outline">Re-Categorize</a>
+  </div>
+</div>
+
+<!-- Progress bar -->
+<div class="card" style="padding:1rem 1.5rem">
+  <div class="progress-row" style="margin-bottom:0.5rem">
+    <div class="progress-bar-wrap" style="height:18px">
+      <div class="progress-bar" style="width:{{ system.completion_pct }}%"></div>
+    </div>
+    <span class="progress-label">{{ system.completion_pct }}%</span>
+  </div>
+  <div class="system-stats">
+    <span class="stat stat-green">&#10003; {{ system.implemented_count }} Implemented</span>
+    <span class="stat stat-blue">&#8635; {{ system.planned_count }} Planned</span>
+    <span class="stat stat-red">&#9675; {{ system.not_started_count }} Not Started</span>
+    <span class="stat stat-orange">&#9651; {{ system.inherited_count }} Inherited</span>
+    <span class="stat stat-grey">&#8212; {{ system.not_applicable_count }} N/A</span>
+  </div>
+</div>
+
+<!-- Controls by family -->
+{% if family_groups %}
+<div class="card">
+  <h2>NIST 800-53 Control Baseline — {{ system.impact_level }}</h2>
+  <p style="color:var(--muted);font-size:0.88rem;margin-bottom:1rem">
+    Click any control to view details, update status, or generate an SSP narrative with Claude.
+  </p>
+
+  {% for family_code, assessments in family_groups.items() | sort %}
+  {% set family_name = control_families.get(family_code, family_code) %}
+  {% set done = assessments | selectattr("status", "in", ["implemented", "not_applicable", "inherited"]) | list | length %}
+  {% set total = assessments | length %}
+  <div class="family-section">
+    <div class="family-header" onclick="this.nextElementSibling.classList.toggle('collapsed')">
+      <span class="family-code">{{ family_code }}</span>
+      <span class="family-name">{{ family_name }}</span>
+      <span class="family-count">{{ done }}/{{ total }}</span>
+      <div class="family-mini-bar">
+        <div class="family-mini-fill" style="width:{{ (done / total * 100) | int }}%"></div>
+      </div>
+      <span class="family-toggle">&#9660;</span>
+    </div>
+
+    <div class="family-controls">
+      {% for assessment in assessments %}
+      {% set ctrl = control_lookup.get(assessment.control_id) %}
+      <a href="/systems/{{ system.id }}/controls/{{ assessment.control_id }}" class="control-row {{ assessment.status_css }}">
+        <span class="control-id">{{ assessment.control_id }}</span>
+        <span class="control-title">{{ ctrl.title if ctrl else assessment.control_id }}</span>
+        <span class="control-status-badge {{ assessment.status_css }}">{{ assessment.status_label }}</span>
+        {% if assessment.generated_narrative %}
+        <span class="has-narrative" title="SSP narrative generated">&#128196;</span>
+        {% endif %}
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+{% else %}
+<div class="card">
+  <p>No controls loaded yet. <a href="/systems/{{ system.id }}/categorize">Run categorization</a> first.</p>
+</div>
+{% endif %}
+
+{% endblock %}
+
+<script>
+document.querySelectorAll('.family-header').forEach(h => {
+  h.style.cursor = 'pointer';
+});
+</script>
