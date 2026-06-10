@@ -13,7 +13,7 @@ from sqlalchemy.orm import Session
 
 from claude_analyst import AnalystError, categorize_system, generate_ssp_narrative
 from config import APP_SUBTITLE, APP_TITLE, CONTROL_FAMILIES, CONTROL_STATUSES, DEMO_BANNER, DEMO_MODE
-from database import get_db, init_db
+from database import SessionLocal, get_db, init_db
 from models import ControlAssessment, System
 from nist_controls import CONTROL_LOOKUP, get_control, get_controls_for_level
 
@@ -25,9 +25,48 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 
 
+def _load_seed_data(db: Session) -> None:
+    from seed_data import DEMO_SYSTEM
+    if db.query(System).filter_by(name=DEMO_SYSTEM["name"]).first():
+        return
+    system = System(
+        name=DEMO_SYSTEM["name"],
+        description=DEMO_SYSTEM["description"],
+        system_owner=DEMO_SYSTEM["system_owner"],
+        tech_stack=DEMO_SYSTEM["tech_stack"],
+        data_types=DEMO_SYSTEM["data_types"],
+        impact_level=DEMO_SYSTEM["impact_level"],
+        confidentiality=DEMO_SYSTEM["confidentiality"],
+        integrity=DEMO_SYSTEM["integrity"],
+        availability=DEMO_SYSTEM["availability"],
+        categorization_rationale=DEMO_SYSTEM["categorization_rationale"],
+    )
+    db.add(system)
+    db.flush()
+    controls = get_controls_for_level("Moderate")
+    statuses = DEMO_SYSTEM["control_statuses"]
+    sample = DEMO_SYSTEM["sample_narrative"]
+    for ctrl in controls:
+        status = statuses.get(ctrl["id"], "not_started")
+        narrative = sample["narrative"] if ctrl["id"] == sample["control_id"] else None
+        db.add(ControlAssessment(
+            system_id=system.id,
+            control_id=ctrl["id"],
+            control_family=ctrl["family"],
+            status=status,
+            generated_narrative=narrative,
+        ))
+    db.commit()
+
+
 @app.on_event("startup")
 def startup():
     init_db()
+    db = SessionLocal()
+    try:
+        _load_seed_data(db)
+    finally:
+        db.close()
 
 
 # ---------------------------------------------------------------------------
@@ -295,41 +334,8 @@ def ato_report(request: Request, system_id: int, db: Session = Depends(get_db)):
 @app.post("/seed")
 def seed(db: Session = Depends(get_db)):
     from seed_data import DEMO_SYSTEM
-
     existing = db.query(System).filter_by(name=DEMO_SYSTEM["name"]).first()
-    if existing:
-        return RedirectResponse(f"/systems/{existing.id}", status_code=303)
-
-    system = System(
-        name=DEMO_SYSTEM["name"],
-        description=DEMO_SYSTEM["description"],
-        system_owner=DEMO_SYSTEM["system_owner"],
-        tech_stack=DEMO_SYSTEM["tech_stack"],
-        data_types=DEMO_SYSTEM["data_types"],
-        impact_level=DEMO_SYSTEM["impact_level"],
-        confidentiality=DEMO_SYSTEM["confidentiality"],
-        integrity=DEMO_SYSTEM["integrity"],
-        availability=DEMO_SYSTEM["availability"],
-        categorization_rationale=DEMO_SYSTEM["categorization_rationale"],
-    )
-    db.add(system)
-    db.flush()
-
-    # Build all control assessments for Moderate baseline
-    controls = get_controls_for_level("Moderate")
-    statuses = DEMO_SYSTEM["control_statuses"]
-    sample = DEMO_SYSTEM["sample_narrative"]
-
-    for ctrl in controls:
-        status = statuses.get(ctrl["id"], "not_started")
-        narrative = sample["narrative"] if ctrl["id"] == sample["control_id"] else None
-        db.add(ControlAssessment(
-            system_id=system.id,
-            control_id=ctrl["id"],
-            control_family=ctrl["family"],
-            status=status,
-            generated_narrative=narrative,
-        ))
-
-    db.commit()
-    return RedirectResponse(f"/systems/{system.id}", status_code=303)
+    if not existing:
+        _load_seed_data(db)
+        existing = db.query(System).filter_by(name=DEMO_SYSTEM["name"]).first()
+    return RedirectResponse(f"/systems/{existing.id}", status_code=303)
