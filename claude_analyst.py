@@ -90,7 +90,7 @@ Return ONLY valid JSON (no markdown):
         )
         raw = response.content[0].text
         result = json.loads(_strip_fences(raw))
-    except anthropic.APIError as exc:
+    except Exception as exc:
         raise AnalystError(f"Claude API error: {exc}") from exc
     except json.JSONDecodeError as exc:
         raise AnalystError(f"Claude returned invalid JSON: {exc}") from exc
@@ -142,5 +142,5 @@ Do NOT use markdown formatting. Write in plain prose. Be specific to this system
             messages=[{"role": "user", "content": prompt}],
         )
         return response.content[0].text.strip()
-    except anthropic.APIError as exc:
+    except Exception as exc:
         raise AnalystError(f"Claude API error: {exc}") from exc
