@@ -51,7 +51,7 @@ This tool automates steps 1, 3, and 4 with Claude AI.
 
 ```bash
 # 1. Clone
-git clone https://github.com/JaKPoT-Sudo/ato-accelerator.git
+git clone https://github.com/JaKPoT/ato-accelerator.git
 cd ato-accelerator
 
 # 2. Add your Anthropic API key
