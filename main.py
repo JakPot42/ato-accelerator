@@ -116,6 +116,8 @@ def new_system_form(request: Request):
     return templates.TemplateResponse(request, "new_system.html", _ctx())
 
 
+_MAX_SYSTEM_FIELD_CHARS = 3_000
+
 @app.post("/systems/new")
 def create_system(
     request: Request,
@@ -126,6 +128,11 @@ def create_system(
     tech_stack: str = Form(default=""),
     data_types: str = Form(default=""),
 ):
+    for field_name, value in [("description", description), ("tech_stack", tech_stack), ("data_types", data_types)]:
+        if len(value) > _MAX_SYSTEM_FIELD_CHARS:
+            return templates.TemplateResponse(request, "new_system.html", _ctx({
+                "error": f"Field '{field_name}' too long ({len(value):,} chars). Maximum is {_MAX_SYSTEM_FIELD_CHARS:,} characters.",
+            }), status_code=422)
     system = System(
         name=name,
         description=description,
